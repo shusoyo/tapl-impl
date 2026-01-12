@@ -1,0 +1,19 @@
+(lang dune 3.20)
+
+(name untyped)
+
+(generate_opam_files true)
+
+(using menhir 3.0)
+
+(source
+ (github shusoyo/tapl-impl))
+
+(authors "suspen <author@example.com>")
+
+(license LICENSE)
+
+(package
+ (name untyped)
+ (description "untyped lambda calculus")
+ (depends ocaml))

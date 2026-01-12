@@ -9,7 +9,7 @@ let rec isnumericval t =
   | _ -> false
 ;;
 
-let rec isval t =
+let isval t =
   match t with
   | TmTrue | TmFalse -> true
   | t when isnumericval t -> true
