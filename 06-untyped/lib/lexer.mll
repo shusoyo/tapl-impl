@@ -1,5 +1,9 @@
 {
 open Parser
+
+exception Error of string
+
+let lexer_error msg = raise (Error msg)
 }
 
 let white = [' ' '\t']+
@@ -15,3 +19,4 @@ rule read =
   | "lambda" { ABS }
   | id { ID (Lexing.lexeme lexbuf) }
   | eof { EOF }
+  | _ { lexer_error ("未知字符: " ^ Lexing.lexeme lexbuf) }

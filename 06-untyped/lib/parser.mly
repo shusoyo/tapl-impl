@@ -9,14 +9,14 @@ open Syntax
     [e e1 e2 ...]).  Requires: the list argument is non-empty. *)
 let rec make_apply e = function
   | [] -> failwith "precondition violated"
-  | [e'] -> TmApp (e, e')
-  | h :: ((_ :: _) as t) -> make_apply (TmApp (e, h)) t
+  | [e'] -> NApp (e, e')
+  | h :: ((_ :: _) as t) -> make_apply (NApp (e, h)) t
 %}
 
 %token <string> ID
 %token ABS ARROW LPAREN RPAREN EOF
 
-%start <Syntax.term'> prog
+%start <Syntax.n_term> prog
 
 %%
 
@@ -27,10 +27,10 @@ prog:
 term:
   | e = simpl_expr { e }
   | e = simpl_expr; es = simpl_expr+ { make_apply e es }
-  | ABS; x = ID; ARROW; e = term { TmAbs (x, e) }
+  | ABS; x = ID; ARROW; e = term { NAbs (x, e) }
   ;
 
 simpl_expr:
-  | x = ID { TmVar x }
+  | x = ID { NVar x }
   | LPAREN; e=term; RPAREN { e } 
   ;

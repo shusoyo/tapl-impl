@@ -5,5 +5,5 @@
 
 (library
  (name untyped)
- (modules parser lexer syntax core)
+ (modules parser lexer syntax eval pp)
  (libraries core))
