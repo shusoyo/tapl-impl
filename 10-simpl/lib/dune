@@ -1,0 +1,9 @@
+(menhir
+ (modules parser))
+
+(ocamllex lexer)
+
+(library
+ (name untyped)
+ (modules parser lexer syntax eval pp)
+ (libraries core))
