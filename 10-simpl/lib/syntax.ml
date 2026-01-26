@@ -1,7 +1,9 @@
 exception VariableNotFound of string
 
+open Sexplib.Std
+
 (** type *)
-type ty = TBool | TFun of ty * ty
+type ty = TNat | TBool | TFun of ty * ty [@@deriving sexp]
 
 (** nameless term *)
 type term =
@@ -11,6 +13,9 @@ type term =
   | IF of term * term * term
   | Abs of string * ty * term
   | App of term * term
+  | Zero
+  | Suc of term
+[@@deriving sexp]
 
 (** named term *)
 type n_term =
@@ -20,6 +25,9 @@ type n_term =
   | NIf of n_term * n_term * n_term
   | NAbs of string * ty * n_term
   | NApp of n_term * n_term
+  | NZero
+  | NSuc of n_term
+[@@deriving sexp]
 
 (** context *)
 type binding = NameBind | VarBind of ty
@@ -77,6 +85,8 @@ let rec remove_names (ctx : context) (t : n_term) : term =
       IF (remove_names ctx t1, remove_names ctx t2, remove_names ctx t3)
   | NTrue -> True
   | NFalse -> False
+  | NZero -> Zero
+  | NSuc t1 -> Suc (remove_names ctx t1)
 
 (* RESTORE NAMES (Reification):
     Given a context Γ and a nameless term t, restore the variable names.
@@ -98,6 +108,8 @@ let rec resotre_names (ctx : context) (t : term) : n_term =
       NIf (resotre_names ctx t1, resotre_names ctx t2, resotre_names ctx t3)
   | True -> NTrue
   | False -> NFalse
+  | Zero -> NZero
+  | Suc t1 -> NSuc (resotre_names ctx t1)
 
 (* 6.2.1 DEFINITION [SHIFTING]: 
    The d-place shift of a term t above cutoff c, written ↑ᵈ꜀(t), 
@@ -145,6 +157,7 @@ let rec subst (j : int) (s : term) (t : term) : term =
   | Abs (x, ty, t1) -> Abs (x, ty, subst (j + 1) (shift 1 0 s) t1)
   | App (t1, t2) -> App (subst j s t1, subst j s t2)
   | IF (t1, t2, t3) -> IF (subst j s t1, subst j s t2, subst j s t3)
+  | Suc t1 -> Suc (subst j s t1)
   | _ -> t
 
 (* E-APPABS: (λ.t₁₂) s₂  ⟶  ↑⁻¹([0 ↦ ↑¹(s₂)]t₁₂) *)

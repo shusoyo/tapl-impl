@@ -1,4 +1,4 @@
 (executable
- (public_name untyped)
+ (public_name simpl)
  (name main)
- (libraries untyped))
+ (libraries simpl))

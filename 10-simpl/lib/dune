@@ -1,9 +1,12 @@
 (menhir
+ ; (flags --trace)
  (modules parser))
 
 (ocamllex lexer)
 
 (library
- (name untyped)
+ (name simpl)
  (modules parser lexer syntax eval pp)
- (libraries core))
+ (libraries base stdio sexplib core)
+ (preprocess
+  (pps ppx_jane)))

@@ -1,7 +1,7 @@
 open Format
 open Syntax
 
-type precedence = PAtomic | PApp | PAbs | PIF | PTrue | PFalse
+type precedence = PAtomic | PApp | PAbs | PIF | PTrue | PFalse | PZero | PSuc
 
 (** [get_prec t] 返回项的最高优先级 *)
 let get_prec (t : term) : precedence =
@@ -12,6 +12,8 @@ let get_prec (t : term) : precedence =
   | IF _ -> PIF
   | True -> PTrue
   | False -> PFalse
+  | Zero -> PZero
+  | Suc _ -> PSuc
 
 (** [maybe_paren current_prec outer_prec ppf f] 如果当前优先级低于外部优先级，则加上括号 *)
 let maybe_paren (current : precedence) (outer : precedence) (ppf : formatter)
@@ -47,6 +49,8 @@ let rec pp_nt_term (ctx : context) (outer_prec : precedence) (ppf : formatter)
             t1 (pp_nt_term ctx PIF) t2 (pp_nt_term ctx PIF) t3)
   | True -> fprintf ppf "true"
   | False -> fprintf ppf "false"
+  | Zero -> fprintf ppf "zero"
+  | Suc t1 -> fprintf ppf "suc %a" (pp_nt_term ctx PAtomic) t1
 
 (** 顶层接口 *)
 let print_term (ctx : context) (t : term) : unit =

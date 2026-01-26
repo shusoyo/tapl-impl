@@ -6,7 +6,7 @@ exception Error of string
 let lexer_error msg = raise (Error msg)
 }
 
-let white = [' ' '\t']+
+let white = [' ' '\t' '\n']+
 let letter = ['a'-'z' 'A'-'Z']
 let id = letter+
 
@@ -25,6 +25,9 @@ rule read =
   | "if" { IF }
   | "then" { THEN }
   | "else" { ELSE }
+  | "zero" { ZERO }
+  | "suc" { SUC }
+  | "Nat" { NAT_TYPE }
   | id { ID (Lexing.lexeme lexbuf) }
   | eof { EOF }
   | _ { lexer_error ("未知字符: " ^ Lexing.lexeme lexbuf) }

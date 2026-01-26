@@ -1,4 +1,4 @@
-open Untyped
+open Simpl
 open Eval
 open Pp
 open Syntax
@@ -12,8 +12,9 @@ let () =
   try
     let nameless_ast = parse_buf lexbuf in
     let result = steps nameless_ast in
-    print_term empty_context result;
-    close_in input_channel
+    close_in input_channel;
+    print_term empty_context result
+    (* Sexplib.Sexp.pp_hum Format.std_formatter (sexp_of_term nameless_ast) *)
   with
   | Lexer.Error msg -> Printf.eprintf "Lexical error: %s\n" msg
   | Parser.Error ->
