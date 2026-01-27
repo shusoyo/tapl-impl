@@ -3,18 +3,20 @@ exception VariableNotFound of string
 open Sexplib.Std
 
 (** type *)
-type ty = TNat | TBool | TFun of ty * ty [@@deriving sexp]
+type ty = TUnit | TNat | TBool | TFun of ty * ty [@@deriving sexp]
 
 (** nameless term *)
 type term =
   | Var of int
   | True
   | False
-  | IF of term * term * term
+  | If of term * term * term
   | Abs of string * ty * term
   | App of term * term
   | Zero
   | Suc of term
+  | Unit
+  | Let of string * term * term
 [@@deriving sexp]
 
 (** named term *)
@@ -27,6 +29,8 @@ type n_term =
   | NApp of n_term * n_term
   | NZero
   | NSuc of n_term
+  | NUnit
+  | NLet of string * n_term * n_term
 [@@deriving sexp]
 
 (** context *)
@@ -82,11 +86,14 @@ let rec remove_names (ctx : context) (t : n_term) : term =
   | NAbs (x, ty, t') -> Abs (x, ty, remove_names ((x, NameBind) :: ctx) t')
   | NApp (t1, t2) -> App (remove_names ctx t1, remove_names ctx t2)
   | NIf (t1, t2, t3) ->
-      IF (remove_names ctx t1, remove_names ctx t2, remove_names ctx t3)
+      If (remove_names ctx t1, remove_names ctx t2, remove_names ctx t3)
   | NTrue -> True
   | NFalse -> False
   | NZero -> Zero
   | NSuc t1 -> Suc (remove_names ctx t1)
+  | NUnit -> Unit
+  | NLet (x, t1, t2) ->
+      Let (x, remove_names ctx t1, remove_names ((x, NameBind) :: ctx) t2)
 
 (* RESTORE NAMES (Reification):
     Given a context Γ and a nameless term t, restore the variable names.
@@ -104,12 +111,16 @@ let rec resotre_names (ctx : context) (t : term) : n_term =
       let x' = pick_fresh_name x ctx in
       NAbs (x', ty, resotre_names ((x', NameBind) :: ctx) t)
   | App (t1, t2) -> NApp (resotre_names ctx t1, resotre_names ctx t2)
-  | IF (t1, t2, t3) ->
+  | If (t1, t2, t3) ->
       NIf (resotre_names ctx t1, resotre_names ctx t2, resotre_names ctx t3)
   | True -> NTrue
   | False -> NFalse
   | Zero -> NZero
   | Suc t1 -> NSuc (resotre_names ctx t1)
+  | Unit -> NUnit
+  | Let (x, t1, t2) ->
+      let x' = pick_fresh_name x ctx in
+      NLet (x', resotre_names ctx t1, resotre_names ((x', NameBind) :: ctx) t2)
 
 (* 6.2.1 DEFINITION [SHIFTING]: 
    The d-place shift of a term t above cutoff c, written ↑ᵈ꜀(t), 
@@ -126,6 +137,7 @@ let rec resotre_names (ctx : context) (t : term) : n_term =
 *)
 let rec shift (d : int) (c : int) (t : term) : term =
   match t with
+  | True | False | Zero | Unit -> t
   | Var k ->
       if k >= c then
         Var (k + d)
@@ -133,8 +145,9 @@ let rec shift (d : int) (c : int) (t : term) : term =
         Var k
   | Abs (x, ty, t1) -> Abs (x, ty, shift d (c + 1) t1)
   | App (t1, t2) -> App (shift d c t1, shift d c t2)
-  | IF (t1, t2, t3) -> IF (shift d c t1, shift d c t2, shift d c t3)
-  | _ -> t
+  | If (t1, t2, t3) -> If (shift d c t1, shift d c t2, shift d c t3)
+  | Let (x, t1, t2) -> Let (x, shift d c t1, shift d (c + 1) t2)
+  | Suc t1 -> Suc (shift d c t1)
 
 (* 6.2.4 DEFINITION [SUBSTITUTION]:
    The substitution of a term s for variable number j in a term t,
@@ -149,6 +162,7 @@ let rec shift (d : int) (c : int) (t : term) : term =
 *)
 let rec subst (j : int) (s : term) (t : term) : term =
   match t with
+  | True | False | Zero | Unit -> t
   | Var k ->
       if k = j then
         s
@@ -156,9 +170,9 @@ let rec subst (j : int) (s : term) (t : term) : term =
         Var k
   | Abs (x, ty, t1) -> Abs (x, ty, subst (j + 1) (shift 1 0 s) t1)
   | App (t1, t2) -> App (subst j s t1, subst j s t2)
-  | IF (t1, t2, t3) -> IF (subst j s t1, subst j s t2, subst j s t3)
+  | If (t1, t2, t3) -> If (subst j s t1, subst j s t2, subst j s t3)
   | Suc t1 -> Suc (subst j s t1)
-  | _ -> t
+  | Let (x, t1, t2) -> Let (x, subst j s t1, subst (j + 1) (shift 1 0 s) t2)
 
 (* E-APPABS: (λ.t₁₂) s₂  ⟶  ↑⁻¹([0 ↦ ↑¹(s₂)]t₁₂) *)
 let subst_top (s : term) (t : term) : term =

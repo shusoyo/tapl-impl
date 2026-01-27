@@ -1,8 +1,3 @@
-(
-  lambda y : Nat . lambda x : Nat .
-  lambda s : Nat -> Nat . lambda z : Nat . 
-    y s (x s z) 
-) 
-  (lambda s : Nat -> Nat . lambda z : Nat . s (s z)) 
-  (lambda s : Nat -> Nat . lambda z : Nat . s (s z)) 
-  (lambda x : Nat . suc x) (zero)
+let x = zero in 
+let f = (lambda x : Nat . suc x) in
+f x

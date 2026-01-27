@@ -13,6 +13,13 @@ let id = letter+
 rule read = 
   parse 
   | white { read lexbuf }
+  | "()" { UNIT }
+  | ";" { SEMICOLON }
+  | "Unit" { UNIT_TYPE }
+  | "as" { AS }
+  | "=" { EQ }
+  | "let" { LET }
+  | "in" { IN }
   | "(" { LPAREN }
   | ")" { RPAREN }
   | "." { ARROW }
