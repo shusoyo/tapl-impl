@@ -3,7 +3,13 @@ exception VariableNotFound of string
 open Sexplib.Std
 
 (** type *)
-type ty = TUnit | TNat | TBool | TFun of ty * ty [@@deriving sexp]
+type ty =
+  | TUnit
+  | TNat
+  | TBool
+  | TFun of ty * ty
+  | TRecord of (string * ty) list
+[@@deriving sexp]
 
 (** nameless term *)
 type term =
@@ -17,6 +23,8 @@ type term =
   | Suc of term
   | Unit
   | Let of string * term * term
+  | Record of (string * term) list
+  | Proj of term * string
 [@@deriving sexp]
 
 (** named term *)
@@ -31,6 +39,8 @@ type n_term =
   | NSuc of n_term
   | NUnit
   | NLet of string * n_term * n_term
+  | NRecord of (string * n_term) list
+  | NProj of n_term * string
 [@@deriving sexp]
 
 (** context *)
@@ -94,6 +104,9 @@ let rec remove_names (ctx : context) (t : n_term) : term =
   | NUnit -> Unit
   | NLet (x, t1, t2) ->
       Let (x, remove_names ctx t1, remove_names ((x, NameBind) :: ctx) t2)
+  | NRecord fields ->
+      Record (List.map (fun (name, nt) -> (name, remove_names ctx nt)) fields)
+  | NProj (x, label) -> Proj (remove_names ctx x, label)
 
 (* RESTORE NAMES (Reification):
     Given a context Γ and a nameless term t, restore the variable names.
@@ -121,6 +134,9 @@ let rec resotre_names (ctx : context) (t : term) : n_term =
   | Let (x, t1, t2) ->
       let x' = pick_fresh_name x ctx in
       NLet (x', resotre_names ctx t1, resotre_names ((x', NameBind) :: ctx) t2)
+  | Record fields ->
+      NRecord (List.map (fun (name, nt) -> (name, resotre_names ctx nt)) fields)
+  | Proj (x, label) -> NProj (resotre_names ctx x, label)
 
 (* 6.2.1 DEFINITION [SHIFTING]: 
    The d-place shift of a term t above cutoff c, written ↑ᵈ꜀(t), 
@@ -148,6 +164,9 @@ let rec shift (d : int) (c : int) (t : term) : term =
   | If (t1, t2, t3) -> If (shift d c t1, shift d c t2, shift d c t3)
   | Let (x, t1, t2) -> Let (x, shift d c t1, shift d (c + 1) t2)
   | Suc t1 -> Suc (shift d c t1)
+  | Record fields ->
+      Record (List.map (fun (name, t) -> (name, shift d c t)) fields)
+  | Proj (t1, label) -> Proj (shift d c t1, label)
 
 (* 6.2.4 DEFINITION [SUBSTITUTION]:
    The substitution of a term s for variable number j in a term t,
@@ -173,6 +192,9 @@ let rec subst (j : int) (s : term) (t : term) : term =
   | If (t1, t2, t3) -> If (subst j s t1, subst j s t2, subst j s t3)
   | Suc t1 -> Suc (subst j s t1)
   | Let (x, t1, t2) -> Let (x, subst j s t1, subst (j + 1) (shift 1 0 s) t2)
+  | Record fields ->
+      Record (List.map (fun (name, t) -> (name, subst j s t)) fields)
+  | Proj (t1, label) -> Proj (subst j s t1, label)
 
 (* E-APPABS: (λ.t₁₂) s₂  ⟶  ↑⁻¹([0 ↦ ↑¹(s₂)]t₁₂) *)
 let subst_top (s : term) (t : term) : term =

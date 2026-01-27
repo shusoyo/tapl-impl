@@ -1,3 +1,2 @@
-let x = zero in 
-let f = (lambda x : Nat . suc x) in
-f x
+let A = ({ x = zero, y = zero } as {x: Nat, y: Nat}) in
+{ x = zero, y = suc zero }.x

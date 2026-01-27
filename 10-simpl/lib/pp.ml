@@ -12,6 +12,8 @@ type precedence =
   | PAbs
   | PIF
   | PLet
+  | PRecord
+  | PProj
 
 (** [get_prec t] 返回项的最高优先级 *)
 let get_prec (t : term) : precedence =
@@ -26,6 +28,8 @@ let get_prec (t : term) : precedence =
   | Suc _ -> PSuc
   | Unit -> PUnit
   | Let _ -> PLet
+  | Record _ -> PRecord
+  | Proj _ -> PProj
 
 (** [maybe_paren current_prec outer_prec ppf f] 如果当前优先级低于外部优先级，则加上括号 *)
 let maybe_paren (current : precedence) (outer : precedence) (ppf : formatter)
@@ -70,6 +74,17 @@ let rec pp_nt_term (ctx : context) (outer_prec : precedence) (ppf : formatter)
           fprintf ppf "@[<hov 2>let %s = %a in@ %a@]" x' (pp_nt_term ctx PIF) t1
             (pp_nt_term ((x', NameBind) :: ctx) PIF)
             t2)
+  | Record fields ->
+      let pp_field ppf (label, ti) =
+        fprintf ppf "%s = %a" label (pp_nt_term ctx PAtomic) ti
+      in
+      maybe_paren current_prec outer_prec ppf (fun () ->
+          fprintf ppf "{ %a }"
+            (pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf "; ") pp_field)
+            fields)
+  | Proj (t1, label) ->
+      maybe_paren current_prec outer_prec ppf (fun () ->
+          fprintf ppf "%a.%s" (pp_nt_term ctx PProj) t1 label)
 
 (** 顶层接口 *)
 let print_term (ctx : context) (t : term) : unit =
